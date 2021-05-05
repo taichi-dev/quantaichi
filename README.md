@@ -1,1 +1,3 @@
-# quantaichi
+# QuanTaichi: A Compiler for Quantized Simulations
+
+Source code release WIP...
