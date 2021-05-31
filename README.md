@@ -6,14 +6,20 @@
 
 [[Paper]](https://yuanming.taichi.graphics/publication/2021-quantaichi/quantaichi.pdf) [[Video]](https://youtu.be/0jdrAQOxJlY)
 
+The QuanTaichi framework is now officially part of Taichi. This repo only contains examples.
 ### Simulate more with less memory, using a quantization compiler.
+High-resolution simulations can deliver great visual quality, but they are often limited by available memory. We present a compiler for physical simulation that can achieve both high performance and significantly reduced memory costs, by enabling flexible and aggressive quantization.   
 
-One can use following code to define custom data types:
+To achieve that, we implement an extension of type system in `Taichi`. Now, programmers can use the following code to define custom data types:
+
+```python
+ci8 = ti.quant.int(bits=8, signed=8)
+cft12 = ti.quant.fixed(frac=12, signed=False, range=3.0)
+cft16 = ti.quant.float(exp=5, frac=11, signed=True)
 ```
-ti.quant.int()
-ti.quant.fixed(...)
-ti.quant.float(...)
-```
+The resolution and scale of physical simulation can be significantly promoted by describing data in these quantized types. We made a simple the programming interface and the compiler will automatically handle the quantization process so that programmers can effortlessly switch between the full precision and quantized version.
+
+Under proper quantization, we achieve 8× higher memory efficiency on each Game of Life cell, 1.57× on each Eulerian fluid simulation voxel, and 1.7× on each material point method particle. To the best of our knowledge, this is the first time these high-resolution simulations can run on a single GPU. Our system achieves resolution, performance, accuracy, and visual quality simultaneously.
 
 ## How to run
 
