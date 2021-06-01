@@ -57,8 +57,8 @@ def from_npy(file):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--show', action='store_true', help='Run with gui')
+    parser.add_argument('-a', '--arch', type=str, default='cpu', help='[cpu/cuda]')
     parser.add_argument('-o', '--out-dir', type=str, help='Output folder')
-    parser.add_argument('--gpu', action='store_true', help='Use gpu')
     args = parser.parse_args()
     print(args)
     return args
@@ -70,8 +70,8 @@ output_folder = None
 if args.out_dir:
     output_folder = f'{args.out_dir}'
     os.makedirs(output_folder, exist_ok=True)
-if args.gpu:
-    ti.init(arch=ti.gpu, use_unified_memory=False, device_memory_GB=9)
+if args.arch == 'cuda':
+    ti.init(arch=ti.cuda, use_unified_memory=False, device_memory_GB=4)
 else:
     ti.init(arch=ti.cpu)
 

@@ -10,14 +10,21 @@ The QuanTaichi framework is now officially part of Taichi. This repo only contai
 ### Simulate more with less memory, using a quantization compiler.
 High-resolution simulations can deliver great visual quality, but they are often limited by available memory. We present a compiler for physical simulation that can achieve both high performance and significantly reduced memory costs, by enabling flexible and aggressive quantization.   
 
-To achieve that, we implement an extension of type system in `Taichi`. Now, programmers can use the following code to define custom data types:
-
+To achieve that, we implement an extension of type system in `Taichi`. Now, programmers can define custom data types using the following code:
 ```python
-ci8 = ti.quant.int(bits=8, signed=8)
-cft12 = ti.quant.fixed(frac=12, signed=False, range=3.0)
+i8 = ti.quant.int(bits=8, signed=True)
+fixed12 = ti.quant.fixed(frac=12, signed=False, range=3.0)
 cft16 = ti.quant.float(exp=5, frac=11, signed=True)
 ```
-The resolution and scale of physical simulation can be significantly promoted by describing data in these quantized types. We made a simple the programming interface and the compiler will automatically handle the quantization process so that programmers can effortlessly switch between the full precision and quantized version.
+The compiler will automatically quantize or dequantize the data for storage. Since the custom data types are not natively supported on hardwares, we propose two useful types of bit adapters: `Bit structs` and `Bit arrays` to pack thses types into hardware supported types with bit width 8, 16, 32, 64. For example, The following code declears 2 fields with custom types, and materialized them into two 2D 4 x 2 arrays with `Bit structs`:
+```python
+u4 = ti.quant.int(bits=4, signed=False)
+i12 = ti.quant.int(bits=12, signed=True)
+p = ti.field(dtype=u4)
+q = ti.field(dtype=i12)
+ti.root.dense(ti.ij, (4, 2)).bit_struct(num_bits=16).place(p, q)
+```
+The p and q fields are laid in an array of structure (AOS) order in memory. Note the containing bit struct of a (p[i, j], q[i, j]) is 16-bit wide. For more details of the usage of our quantization type system, please refer to our paper or see the examples in this repo.
 
 Under proper quantization, we achieve 8× higher memory efficiency on each Game of Life cell, 1.57× on each Eulerian fluid simulation voxel, and 1.7× on each material point method particle. To the best of our knowledge, this is the first time these high-resolution simulations can run on a single GPU. Our system achieves resolution, performance, accuracy, and visual quality simultaneously.
 
@@ -29,25 +36,24 @@ Install the latest Taichi by:
 python3 -m pip install —U taichi
 ```
 
-### Game of Life (GOL)
+### Game of Life (GoL)
 
 ![gol_pic](./pics/teaser_gol.jpg)
 
 To reproduce the GOL galaxy:
 ```
-cd gol && python3 galaxy.py -a [cpu/cuda] -o output]
+cd gol && python3 galaxy.py -a [cpu/cuda] -o output
 ```
 We suggest you run the script using GPU (`--arch cuda`). Because to better observe the evolution of metapixels, we set the steps per frame to be 32768 which will take quite a while on CPUs.
 
-To reproduce the super large scale:
+To reproduce the super large scale GoL:
 
 1. Download the pattern `quant_sim_meta.rle` from our [Google Drive](https://drive.google.com/file/d/1kCg2fSAlQgy42cGAatVwuvGZd7RlqLF-/view?usp=sharing) and place it in the same folder with `quant_sim.py`
 
 2. Run the code
 ```
-python quant_sim.py -o [output_dir]
+python3 quant_sim.py -a [cpu/cuda] -o output
 ```
-
 
 ### MLS-MPM
 ![mpm-pic](./pics/mpm-235.jpg)

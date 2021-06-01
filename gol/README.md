@@ -27,7 +27,7 @@ A super high-resolution game of life displaying letters of "QUANT SIM" (Fig. 1 i
 
 2. Run the code
 ```
-python quant_sim.py -o [output_dir]
+python quant_sim.py -o [output_dir] --gpu
 ```
 
 ### Note
