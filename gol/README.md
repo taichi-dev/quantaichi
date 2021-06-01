@@ -32,7 +32,12 @@ python quant_sim.py -o [output_dir] --gpu
 
 ### Note
 
-The pattern file for this demo contains 20B cells in Run-Length Encoding format. We use a naive serial parsing method to parse the pattern file so it may take tens of minutes to finish the pattern loading.
+1. The pattern file for this demo contains 20B cells in Run-Length Encoding format. We use a naive serial parsing method to parse the pattern file so it may take one hour to finish the pattern loading.
+
+2. Before offloading the pattern to GPU and running Taichi kernels, we first store it into a large Numpy array which will require approximately 19GB of host memory, so please make sure your workstation/server has enough memory.
+
+3. This demo requires a minimal of 7GB of device memory, so please make sure your GPU meets this requirement.
+
 
 ### Results
 

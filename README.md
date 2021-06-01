@@ -55,6 +55,8 @@ To reproduce the super large scale GoL:
 python3 quant_sim.py -a [cpu/cuda] -o output
 ```
 
+For more details, please refer to this [documentation](gol/README.md)
+
 ### MLS-MPM
 ![mpm-pic](./pics/mpm-235.jpg)
 
