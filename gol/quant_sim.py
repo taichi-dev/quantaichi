@@ -71,7 +71,7 @@ if args.out_dir:
     output_folder = f'{args.out_dir}'
     os.makedirs(output_folder, exist_ok=True)
 if args.arch == 'cuda':
-    ti.init(arch=ti.cuda, use_unified_memory=False, device_memory_GB=4)
+    ti.init(arch=ti.cuda, use_unified_memory=False, device_memory_GB=9)
 else:
     ti.init(arch=ti.cpu)
 
@@ -191,7 +191,6 @@ def running(x, y, _gui):
         evolve(x, y)
         fill_img(base_size + int(offset), x)
     else:
-        #TODO: (Jiafeng) this may need adjustment
         for _ in range(512):
             evolve(x, y)
             evolve(y, x)
