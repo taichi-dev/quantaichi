@@ -71,14 +71,14 @@ if args.out_dir:
     output_folder = f'{args.out_dir}'
     os.makedirs(output_folder, exist_ok=True)
 if args.arch == 'cuda':
-    ti.init(arch=ti.cuda, use_unified_memory=False, device_memory_GB=9)
+    ti.init(arch=ti.cuda, device_memory_GB=9)
 else:
     ti.init(arch=ti.cpu)
 
-cu1 = ti.quant.int(1, False)
+qu1 = ti.types.quant.int(1, False)
 
-state_a = ti.field(dtype=cu1)
-state_b = ti.field(dtype=cu1)
+state_a = ti.field(dtype=qu1)
+state_b = ti.field(dtype=qu1)
 img_size = 2160
 N = 262144
 bits = 32
@@ -98,9 +98,9 @@ img = ti.field(dtype=ti.float32, shape=(img_size, img_size))
 
 @ti.kernel
 def evolve(x: ti.template(), y: ti.template()):
-    ti.bit_vectorize(32)
+    ti.lang.impl.get_runtime().prog.current_ast_builder().bit_vectorize(32)
     for i, j in x:
-        num_active_neighbors = 0
+        num_active_neighbors = ti.u32(0)
         num_active_neighbors += ti.cast(x[i - 1, j - 1], ti.u32)
         num_active_neighbors += ti.cast(x[i - 1, j], ti.u32)
         num_active_neighbors += ti.cast(x[i - 1, j + 1], ti.u32)
@@ -109,7 +109,7 @@ def evolve(x: ti.template(), y: ti.template()):
         num_active_neighbors += ti.cast(x[i + 1, j - 1], ti.u32)
         num_active_neighbors += ti.cast(x[i + 1, j], ti.u32)
         num_active_neighbors += ti.cast(x[i + 1, j + 1], ti.u32)
-        y[i, j] = (num_active_neighbors == 3) or (num_active_neighbors == 2 and x[i, j] == 1)
+        y[i, j] = (num_active_neighbors == 3) | ((num_active_neighbors == 2) & (x[i, j] == 1))
 
 
 @ti.func
@@ -129,12 +129,12 @@ def fill_pixel(scale, buffer, i, j, region_size):
             for nn in range(x1, x2):
                 if mm + 0.5 > sy1 and mm + 0.5 < sy2 and nn + 0.5 > sx1 and nn + 0.5 < sx2:
                     count += 1
-                    val += buffer[boundary_offset + int(n / 2) - region_size / 2 + mm,
-                                  boundary_offset + int(n / 2) - region_size / 2 + nn]
+                    val += buffer[boundary_offset + int(n / 2) - int(region_size / 2) + mm,
+                                  boundary_offset + int(n / 2) - int(region_size / 2) + nn]
         ret_val = val
     else:
-        ret_val = buffer[boundary_offset + int(n / 2) - region_size / 2 + region_size * ii,
-                   boundary_offset + int(n / 2) - region_size / 2  + region_size * jj]
+        ret_val = buffer[int(boundary_offset + int(n / 2) - region_size / 2 + region_size * ii),
+                   int(boundary_offset + int(n / 2) - region_size / 2  + region_size * jj)]
     return ret_val
 
 
@@ -160,7 +160,7 @@ def clear(x: ti.template(), y: ti.template()):
             y[i, j] = 0
 
 @ti.kernel
-def init_from_slices(x: ti.template(), y: ti.template(), init_buffer: ti.ext_arr(),
+def init_from_slices(x: ti.template(), y: ti.template(), init_buffer: ti.types.ndarray(),
                      init_width: ti.i32, offset: ti.i32, rows: ti.i32):
     for i in range(boundary_offset + offset, boundary_offset + offset + rows):
         for j in range(boundary_offset, boundary_offset + init_width):
@@ -195,7 +195,7 @@ def running(x, y, _gui):
             evolve(x, y)
             evolve(y, x)
         fill_img(n, x)
-    _gui.set_image(ti.imresize(img, img_size, img_size).astype(np.float32))
+    _gui.set_image(ti.tools.imresize(img, img_size, img_size).astype(np.float32))
     _gui.show(f'{output_folder}/{frame_id:06d}.png')
     frame_id += 1
 

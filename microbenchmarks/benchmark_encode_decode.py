@@ -27,9 +27,9 @@ def run(args):
     n = 1024 * 1024 * 256
 
     if quant:
-        cft = ti.quant.float(frac=22, exp=8)
-        x = ti.field(dtype=cft)
-        y = ti.field(dtype=cft)
+        qflt = ti.types.quant.float(frac=22, exp=8)
+        x = ti.field(dtype=qflt)
+        y = ti.field(dtype=qflt)
 
         ti.root.dense(ti.i, n).bit_struct(num_bits=32).place(x)
         ti.root.dense(ti.i, n).bit_struct(num_bits=32).place(y)
@@ -49,16 +49,16 @@ def run(args):
     for i in range(warmup_repeats):
         saxpy(1.1)
 
-    ti.sync()
-    ti.kernel_profiler_clear()
+    #ti.sync()
+    ti.profiler.clear_kernel_profiler_info()
     t = time.time()
 
     for i in range(args.n):
         saxpy(1.1)
 
-    ti.sync()
+    #ti.sync()
     print('total time:', time.time() - t)
-    ti.kernel_profiler_print()
+    ti.profiler.print_kernel_profiler_info()
 
 
 def main():

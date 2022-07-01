@@ -90,8 +90,7 @@ if __name__ == '__main__':
         debug=args.debug,
         kernel_profiler=True,
         async_mode=args.async_mode,
-        device_memory_fraction=0.9,
-        use_unified_memory=False)
+        device_memory_fraction=0.9)
 
     res = args.res
     dim = args.dim
@@ -134,7 +133,7 @@ if __name__ == '__main__':
                 solver.dump_density(density_path)
         gui.show(img_path)
         try:
-            ti.memory_profiler_print()
+            ti.profiler.print_memory_profiler_info()
         except:
             pass
         solver.step()
@@ -142,6 +141,6 @@ if __name__ == '__main__':
         print(
             f'Activated Voxels: {solver.count_activated_voxels()}', flush=True)
         if args.demo_id == 2:
-            print(f'Density sum: {solver.sum_density(solver.dye[0]):.3f}')
+            print(f'Density sum: {solver.sum_density(solver.dye[0].field):.3f}')
     # ti.print_profile_info()
     # ti.misc.util.print_async_stats(include_kernel_profiler=True)

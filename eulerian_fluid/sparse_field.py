@@ -115,18 +115,8 @@ class SparseField:
         return min1, max1
 
     @ti.func
-    def __getitem__(self, item):
-        return ti.subscript(self.field, item)
-
-    @ti.func
     def I2p(self, I):
         return (I + self.stagger) * self.dx
-
-    def loop_range(self):
-        return self.field.loop_range()
-
-    def get_field_members(self):
-        return self.field.get_field_members()
 
     def create_decomposed_sparse_fields(self):
         assert isinstance(self.field, ti.Matrix)
