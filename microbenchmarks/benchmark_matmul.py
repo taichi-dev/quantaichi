@@ -20,7 +20,7 @@ def parse_args():
 
 
 def run(args):
-    ti.init(device_memory_GB=2, **benchmark_utils.extract_init_kwargs(args))
+    ti.init(**benchmark_utils.extract_init_kwargs(args))
 
     quant = args.quant
 
@@ -28,8 +28,8 @@ def run(args):
 
     if quant:
         F_bound = 4.0
-        cft = ti.quant.fixed(frac=16, range=(F_bound + 0.1))
-        F = ti.Matrix.field(3, 3, dtype=cft)
+        qfxt = ti.types.quant.fixed(frac=16, range=(F_bound + 0.1))
+        F = ti.Matrix.field(3, 3, dtype=qfxt)
     else:
         F = ti.Matrix.field(3, 3, dtype=ti.f32)
 
@@ -37,11 +37,11 @@ def run(args):
     block = ti.root.dense(ti.i, n)
 
     if quant:
-        block.bit_struct(num_bits=32).place(F(0, 0), F(0, 1))
-        block.bit_struct(num_bits=32).place(F(0, 2), F(1, 0))
-        block.bit_struct(num_bits=32).place(F(1, 1), F(1, 2))
-        block.bit_struct(num_bits=32).place(F(2, 0), F(2, 1))
-        block.bit_struct(num_bits=32).place(F(2, 2))
+        block.bit_struct(num_bits=32).place(F.get_scalar_field(0, 0), F.get_scalar_field(0, 1))
+        block.bit_struct(num_bits=32).place(F.get_scalar_field(0, 2), F.get_scalar_field(1, 0))
+        block.bit_struct(num_bits=32).place(F.get_scalar_field(1, 1), F.get_scalar_field(1, 2))
+        block.bit_struct(num_bits=32).place(F.get_scalar_field(2, 0), F.get_scalar_field(2, 1))
+        block.bit_struct(num_bits=32).place(F.get_scalar_field(2, 2))
     else:
         block.place(F)
 
@@ -55,16 +55,16 @@ def run(args):
     for i in range(warmup_repeats):
         matmul()
 
-    ti.sync()
-    ti.kernel_profiler_clear()
+    #ti.sync()
+    ti.profiler.clear_kernel_profiler_info()
     t = time.time()
 
     for i in range(args.n):
         matmul()
 
-    ti.sync()
+    #ti.sync()
     print('total time:', time.time() - t)
-    ti.kernel_profiler_print()
+    ti.profiler.print_kernel_profiler_info()
 
 
 def main():

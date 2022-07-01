@@ -27,12 +27,12 @@ def run(args):
     n = 1024 * 1024 * 256
 
     if quant:
-        ci8 = ti.quant.int(8, True)
+        qi8 = ti.types.quant.int(8, True)
 
-        x = ti.field(dtype=ci8)
-        y = ti.field(dtype=ci8)
-        z = ti.field(dtype=ci8)
-        w = ti.field(dtype=ci8)
+        x = ti.field(dtype=qi8)
+        y = ti.field(dtype=qi8)
+        z = ti.field(dtype=qi8)
+        w = ti.field(dtype=qi8)
 
         ti.root.dense(ti.i, n).bit_struct(num_bits=32).place(x, y, z, w)
     else:
@@ -57,16 +57,16 @@ def run(args):
     for i in range(warmup_repeats):
         partial_store()
 
-    ti.sync()
-    ti.kernel_profiler_clear()
+    #ti.sync()
+    ti.profiler.clear_kernel_profiler_info()
     t = time.time()
 
     for i in range(args.n):
         partial_store()
 
-    ti.sync()
+    #ti.sync()
     print('total time:', time.time() - t)
-    ti.kernel_profiler_print()
+    ti.profiler.print_kernel_profiler_info()
     assert w[0] == 1
 
 

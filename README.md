@@ -7,19 +7,22 @@
 [[Paper]](https://yuanming.taichi.graphics/publication/2021-quantaichi/quantaichi.pdf) [[Video]](https://youtu.be/0jdrAQOxJlY)
 
 The QuanTaichi framework is now officially part of [Taichi](https://github.com/taichi-dev/taichi). This repo only contains examples.
+
+**Updates**: Examples are now compatible with Taichi v1.0.3. Please update Taichi if you are using an old version.
+
 ### Simulate more with less memory, using a quantization compiler.
 High-resolution simulations can deliver great visual quality, but they are often limited by available memory. We present a compiler for physical simulation that can achieve both high performance and significantly reduced memory costs, by enabling flexible and aggressive quantization.   
 
 To achieve that, we implemented an extension of the type system in `Taichi`. Now, programmers can define custom data types using the following code:
 ```python
-i8 = ti.quant.int(bits=8, signed=True)
-fixed12 = ti.quant.fixed(frac=12, signed=False, range=3.0)
-cft16 = ti.quant.float(exp=5, frac=11, signed=True)
+i8 = ti.types.quant.int(bits=8, signed=True)
+qfixed12 = ti.types.quant.fixed(frac=12, signed=False, range=3.0)
+qfloat16 = ti.types.quant.float(exp=5, frac=11, signed=True)
 ```
 The compiler will automatically encode/decode numerical data to achieve an improved memory efficiency (storage & bandwidth). Since custom data types are not natively supported by hardware, we propose two useful types of bit adapters: `Bit structs` and `Bit arrays` to pack thses types into hardware supported types with bit width `8`, `16`, `32`, `64`. For example, The following code declears 2 fields with custom types, and materialized them into two 2D 4 x 2 arrays with `Bit structs`:
 ```python
-u4 = ti.quant.int(bits=4, signed=False)
-i12 = ti.quant.int(bits=12, signed=True)
+u4 = ti.types.quant.int(bits=4, signed=False)
+i12 = ti.types.quant.int(bits=12, signed=True)
 p = ti.field(dtype=u4)
 q = ti.field(dtype=i12)
 ti.root.dense(ti.ij, (4, 2)).bit_struct(num_bits=16).place(p, q)
@@ -60,16 +63,7 @@ For more details, please refer to this [documentation](gol/README.md).
 ### MLS-MPM
 ![mpm-pic](./pics/mpm-235.jpg)
 
-To test our system on hybrid Lagrangian-Eulerian methods where both particles and grids are used, we implemented the Moving Least Squares Material Point Method with G2P2G transfer.
-
-To reproduce, please see the output of the following command:
-```
-cd mls-mpm
-python3 -m demo.demo_quantized_simulation_letters --help
-```
-You can add `-s` flag for a quick visualization and you may need to wait for 30 frames to see letters falling down.
-
-More details are in this [documentation](mls_mpm/README.md).
+To test our system on hybrid Lagrangian-Eulerian methods where both particles and grids are used, we implemented the Moving Least Squares Material Point Method with G2P2G transfer. The latest version is now maintained at [Taichi Elements](https://github.com/taichi-dev/taichi_elements).
 
 ### Eulerian Fluid
 

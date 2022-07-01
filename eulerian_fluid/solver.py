@@ -85,25 +85,19 @@ class FluidSolverBase:
         dye_type = ti.f32
 
         if self.v_quant:
-            cft = ti.quant.fixed(frac=21, signed=True, range=2**5)
-            v_type = cft
+            v_type = ti.types.quant.fixed(frac=21, signed=True, range=2**5)
             if self.benchmark_id == 1:
-                cft = ti.quant.float(exp=5, frac=9)
-                v_type = cft
+                v_type = ti.types.quant.float(exp=5, frac=9)
             elif self.benchmark_id == 2:
-                cft = ti.quant.fixed(frac=10)
-                v_type = cft
+                v_type = ti.types.quant.fixed(frac=10)
 
         if self.dye_quant:
             if self.dye_type == DyeType.SHARED_EXP:
-                cft = ti.quant.float(exp=5, frac=9, signed=False)
-                dye_type = cft
+                dye_type = ti.types.quant.float(exp=5, frac=9, signed=False)
             elif self.dye_type == DyeType.FIXED_POINT:
-                cft10 = ti.quant.fixed(frac=10, signed=False)
-                dye_type = cft10
+                dye_type = ti.types.quant.fixed(frac=10, signed=False)
             elif self.dye_type == DyeType.NON_SHREAD_EXP:
-                cft = ti.quant.float(exp=5, frac=5, signed=False)
-                dye_type = cft
+                dye_type = ti.types.quant.float(exp=5, frac=5, signed=False)
             else:
                 assert False, 'please set correct dye type !'
 
@@ -141,12 +135,12 @@ class FluidSolverBase:
         for v in self.v:
             if self.v_quant and self.demo_id <= 2:
                 cell.bit_struct(64).place(
-                    v.get_field_members(), offset=self.offset)
+                    v.field, offset=self.offset)
             elif self.v_quant and self.demo_id == 3:
                 cell.bit_struct(32).place(
-                    v.get_field_members(), offset=self.offset, shared_exponent=self.benchmark_id==1)
+                    v.field, offset=self.offset, shared_exponent=self.benchmark_id==1)
             else:
-                cell.place(v.get_field_members(), offset=self.offset)
+                cell.place(v.field, offset=self.offset)
 
         for dye in self.dye:
             # Use different pointer/dense fields to hold the dyes. This
@@ -155,11 +149,11 @@ class FluidSolverBase:
             _, cell = make_block_cell()
             if self.dye_quant:
                 cell.bit_struct(32).place(
-                    dye.get_field_members(),
+                    dye.field,
                     offset=self.offset,
                     shared_exponent=self.dye_type == DyeType.SHARED_EXP)
             else:
-                cell.place(dye.get_field_members(), offset=self.offset)
+                cell.place(dye.field, offset=self.offset)
 
         self.advection_op = AdvectionOp(rk_order=rk_order, advect_op=advect_op)
         self.dye_sum = ti.field(dtype=ti.f64, shape=())
@@ -317,7 +311,7 @@ class FluidSolver(FluidSolverBase):
 
     @ti.kernel
     def compute_div_and_init_pressure_solver(self, v: ti.template()):
-        for I in ti.grouped(v):
+        for I in ti.grouped(v.field):
             div = 0.0
             for k in ti.static(range(self.dim)):
                 ni = I  # neighbor index
@@ -332,7 +326,7 @@ class FluidSolver(FluidSolverBase):
     @ti.kernel
     def apply_pressure_with_adjustments(self, v: ti.template(),
                                         pressure: ti.template()):
-        for I in ti.grouped(v):
+        for I in ti.grouped(v.field):
             pdiff = ti.Vector.zero(ti.f32, self.dim)
             for k in ti.static(range(self.dim)):
                 ni = I  # neighbor index
@@ -341,7 +335,7 @@ class FluidSolver(FluidSolverBase):
                 ni[k] += 2
                 pr = pressure.bounded_load(ni)
                 pdiff[k] = pr - pl
-            v[I] = v[I] - 0.5 * pdiff + self.average_v[None]
+            v.field[I] = v.field[I] - 0.5 * pdiff + self.average_v[None]
 
     def advect(self, v, dt):
         # Use v as velocity field to advect self.v[0] into self.v[1], self.v[2] is tmp
@@ -384,7 +378,7 @@ class FluidSolver(FluidSolverBase):
             a[I] = b[I] * 2 - a[I]
 
     def reflect(self):
-        self.copy(self.v[3], self.v[0])
+        self.copy(self.v[3].field, self.v[0].field)
         self.project(self.v[3])
         # v = v_divfree * 2 - v
         self.reflect_field(self.v[0].field, self.v[3].field)
@@ -393,9 +387,9 @@ class FluidSolver(FluidSolverBase):
         if self.reflection:
             self.advect(self.v[0], self.dt)
             if self.smoke_type == SmokeType.FLOW:
-                self.inflow(self.v[0], self.dye[0], self.T, self.dt)
+                self.inflow(self.v[0].field, self.dye[0].field, self.T, self.dt)
             elif self.smoke_type == SmokeType.INIT_BY_SHAPE:
-                self.buoyancy(self.v[0], self.dye[0], self.T, self.dt)
+                self.buoyancy(self.v[0].field, self.dye[0].field, self.T, self.dt)
             else:
                 assert False, 'please set correct smoke type'
             self.reflect()
@@ -404,36 +398,36 @@ class FluidSolver(FluidSolverBase):
             self.T += self.dt * 2
         else:
             self.advect(self.v[0], self.dt)
-            self.inflow(self.v[0], self.dye[0], self.T, self.dt)
+            self.inflow(self.v[0].field, self.dye[0].field, self.T, self.dt)
             self.project(self.v[0])
             self.T += self.dt
-        self.expand_domain(self.dye[0])
+        self.expand_domain(self.dye[0].field)
 
     @ti.kernel
-    def fetch_color_helper(self, v: ti.template(), arr: ti.ext_arr()):
+    def fetch_color_helper(self, v: ti.template(), arr: ti.types.ndarray()):
         if ti.static(self.dim == 3):
             for i, j, k in ti.ndrange(*((-self.res // 2,
                                          self.res // 2), ) * self.dim):
                 I = ti.Vector([i, j, k])
                 J = I + ti.Vector(
                     [self.res // 2, self.res // 2, self.res // 2])
-                for p in ti.static(range(v.field.n)):
+                for p in ti.static(range(v.n)):
                     arr[J, p] = v[I][p]
         else:
             for i, j in ti.ndrange(*((-self.res // 2,
                                       self.res // 2), ) * self.dim):
                 I = ti.Vector([i, j])
                 J = I + ti.Vector([self.res // 2, self.res // 2])
-                for p in ti.static(range(v.field.n)):
+                for p in ti.static(range(v.n)):
                     arr[J, p] = v[I][p]
 
     def fetch_color(self):
         arr = np.zeros((self.res, ) * self.dim + (3, ), dtype=np.float32)
-        self.fetch_color_helper(self.dye[0], arr)
+        self.fetch_color_helper(self.dye[0].field, arr)
         return arr
 
     @ti.kernel
-    def fetch_color_by_slice_helper(self, v: ti.template(), arr: ti.ext_arr()):
+    def fetch_color_by_slice_helper(self, v: ti.template(), arr: ti.types.ndarray()):
         if ti.static(self.dim == 3):
             for i, j in ti.ndrange(*((-self.res // 2, self.res // 2), ) * 2):
                 z = self.block_dim // 2
@@ -441,36 +435,36 @@ class FluidSolver(FluidSolverBase):
                     z = -200
                 I = ti.Vector([i, j, z])
                 J = ti.Vector([i + self.res // 2, j + self.res // 2])
-                for p in ti.static(range(v.field.n)):
+                for p in ti.static(range(v.n)):
                     arr[J, p] = v[I][p]
         else:
             for i, j in ti.ndrange(*((-self.res // 2, self.res // 2), ) * 2):
                 I = ti.Vector([i, j])
                 J = ti.Vector([i + self.res // 2, j + self.res // 2])
-                for p in ti.static(range(v.field.n)):
+                for p in ti.static(range(v.n)):
                     arr[J, p] = 1.0 - v[I][p]
 
     def fetch_color_by_slice(self):
         arr = np.zeros((self.res, ) * 2 + (3, ), dtype=np.float32)
-        self.fetch_color_by_slice_helper(self.dye[0], arr)
+        self.fetch_color_by_slice_helper(self.dye[0].field, arr)
         return arr
 
     @ti.kernel
     def fetch_vector_to_numpy_helper(self, v: ti.template(),
-                                     arr: ti.ext_arr()):
+                                     arr: ti.types.ndarray()):
         for I in ti.grouped(v):
-            for p in ti.static(range(v.field.n)):
+            for p in ti.static(range(v.n)):
                 arr[I - ti.Vector(self.offset), p] = v[I][p]
 
     # TODO: should to_numpy_with_offset be part of Taichi?
     def fetch_vector_to_numpy(self, v):
         ret = np.zeros(v.shape + (v.field.n, ), dtype=np.float32)
-        self.fetch_vector_to_numpy_helper(v, ret)
+        self.fetch_vector_to_numpy_helper(v.field, ret)
         return ret
 
     @ti.kernel
     def fetch_grid_activation_helper(self, v: ti.template(),
-                                     arr: ti.ext_arr()):
+                                     arr: ti.types.ndarray()):
         if ti.static(self.dim == 3):
             for i, j, k in ti.ndrange(*((-self.res // 2,
                                          self.res // 2), ) * self.dim):
@@ -497,7 +491,7 @@ class FluidSolver(FluidSolverBase):
 
     @ti.kernel
     def fetch_grid_activation_by_slice_helper(self, v: ti.template(),
-                                              arr: ti.ext_arr()):
+                                              arr: ti.types.ndarray()):
         # for I in ti.grouped(v):
         #     J = I - ti.Vector(self.offset)
         #     arr[J] = ti.is_active(self.block, J)
@@ -527,7 +521,7 @@ class FluidSolver(FluidSolverBase):
 
     @ti.kernel
     def fetch_density(self, density_rgb: ti.template(),
-                      density_np: ti.ext_arr()):
+                      density_np: ti.types.ndarray()):
         for I in ti.grouped(density_rgb):
             J = I - ti.Vector(self.offset)
             d = ti.cast(min(density_rgb[I].norm(), 1.0) * 100, ti.u8)
@@ -535,7 +529,7 @@ class FluidSolver(FluidSolverBase):
 
     @ti.kernel
     def fetch_density_by_slice(self, density_rgb: ti.template(),
-                               density_np: ti.ext_arr(), k: ti.int32):
+                               density_np: ti.types.ndarray(), k: ti.int32):
         for i, j in ti.ndrange(*((-self.res // 2, self.res // 2), ) * 2):
             I = ti.Vector([k, i, j])
             J = ti.Vector([i + self.res // 2, j + self.res // 2])
@@ -550,7 +544,7 @@ class FluidSolver(FluidSolverBase):
     def dump_density(self, fn):
         density = np.zeros((self.res, self.res, self.res, 3), dtype=np.uint8)
         for k in range(self.res):
-            self.fetch_density_by_slice(self.dye[0], density[k],
+            self.fetch_density_by_slice(self.dye[0].field, density[k],
                                         k - self.res // 2)
         density.tofile(fn)
 
@@ -569,7 +563,7 @@ class FluidSolver(FluidSolverBase):
         self.density_source = density_source.reshape(res, res, res)
 
     @ti.kernel
-    def set_custom_source_helper(self, dyef: ti.template(), arr: ti.ext_arr(),
+    def set_custom_source_helper(self, dyef: ti.template(), arr: ti.types.ndarray(),
                                  k: ti.int32):
         arr_res = arr.shape
         for i, j in ti.ndrange(*arr_res):
@@ -580,7 +574,7 @@ class FluidSolver(FluidSolverBase):
 
     def set_custom_source(self, res):
         for k in range(res):
-            self.set_custom_source_helper(self.dye[0], self.density_source[k],
+            self.set_custom_source_helper(self.dye[0].field, self.density_source[k],
                                           k)
 
     @ti.kernel

@@ -47,7 +47,7 @@ class AdvectionOp:
     def advect_sl(self, v: ti.template(), q_in: ti.template(),
                   q_out: ti.template(), q_tmp: ti.template(), dt: ti.f32):
         # Semi-Lagrangian
-        for I in ti.grouped(q_in):
+        for I in ti.grouped(q_in.field):
             p = q_in.I2p(I)
             p = self.backtrace(v, p, dt)
             q_out.field[I] = q_in.sample(p)
@@ -56,28 +56,28 @@ class AdvectionOp:
     def advect_mc(self, v: ti.template(), q_in: ti.template(),
                   q_out: ti.template(), q_tmp: ti.template(), dt: ti.f32):
         # MacCormack
-        for I in ti.grouped(q_in):
+        for I in ti.grouped(q_in.field):
             p = q_in.I2p(I)
             p = self.backtrace(v, p, dt)
-            q_out[I] = q_in.sample(p)
+            q_out.field[I] = q_in.sample(p)
 
-        for I in ti.grouped(q_in):
+        for I in ti.grouped(q_in.field):
             p = q_in.I2p(I)
             p = self.backtrace(v, p, -dt)
-            q_tmp[I] = q_out.sample(p)
+            q_tmp.field[I] = q_out.sample(p)
 
-        for I in ti.grouped(q_in):
+        for I in ti.grouped(q_in.field):
             p = q_in.I2p(I)
             p_src = self.backtrace(v, p, dt)
             p_sl = q_in.sample(p_src)
-            q_out[I] = q_out[I] + 0.5 * (q_in[I] - q_tmp[I])
+            q_out.field[I] = q_out.field[I] + 0.5 * (q_in.field[I] - q_tmp.field[I])
 
             min_val, max_val = q_in.sample_minmax(p_src)
-            cond = min_val < q_out[I] < max_val
+            cond = min_val < q_out.field[I] < max_val
             if ti.static(isinstance(cond, ti.Matrix)):
                 for k in ti.static(range(cond.n)):
                     if not cond[k]:
-                        q_out[I][k] = p_sl[k]
+                        q_out.field[I][k] = p_sl[k]
             else:
                 if not cond:
-                    q_out[I] = p_sl
+                    q_out.field[I] = p_sl

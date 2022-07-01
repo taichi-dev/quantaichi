@@ -30,5 +30,6 @@ def extract_init_kwargs(args):
         'debug': args.debug,
         'quant_opt_store_fusion': not args.no_fusion,
         'quant_opt_atomic_demotion': not args.no_ad,
-        'kernel_profiler': True
+        'kernel_profiler': True,
+        'device_memory_GB': 3
     }
