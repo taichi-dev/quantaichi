@@ -105,12 +105,12 @@ class Benchmark(FluidSolverBase):
                 # (-y, x, 0)
                 init_v[0] = -xy[1] * 1.
                 init_v[1] = xy[0] * 1.
-                self.v[I] = init_v
+                self.v.field[I] = init_v
 
                 color = ti.sin(ti.Vector([xy[0], xy[1], xy[0] * xy[1]
                                           ])) * 0.5 + 0.5
                 for d in ti.static(list(self.dye)):
-                    d[I] = color
+                    d.field[I] = color
 
     def advect(self):
         # for i in range(3):
@@ -146,7 +146,6 @@ if __name__ == '__main__':
         async_mode=args.async_mode,
         debug=args.debug,
         device_memory_fraction=0.8,
-        use_unified_memory=False,
         **kwargs)
     v_quant = args.quant_v
     dye_quant = args.quant_dye
@@ -180,8 +179,9 @@ if __name__ == '__main__':
             print(f'Ran {f} frames', flush=True)
         if f == 1:
             # Exclude compilation time
-            ti.kernel_profiler_clear()
+            ti.profiler.clear_kernel_profiler_info()
     print(
         f'Advection benchmark time: {time.time() - second_frame_begin_ts:.3f} s'
     )
-    ti.misc.util.print_async_stats(include_kernel_profiler=True)
+    #ti.misc.util.print_async_stats(include_kernel_profiler=True)
+    ti.profiler.print_kernel_profiler_info()

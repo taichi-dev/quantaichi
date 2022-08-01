@@ -39,7 +39,7 @@ data type of `dey density`:
 ### Performance comparisons
 Please use the following command to run the experiment :
 ```
-python run_benchmark.py -e [0/1/2] -o outputs
+python run_benchmark.py -e [0/1/2]
 ```
 `-e` means experiment
 + 0 for all float32
