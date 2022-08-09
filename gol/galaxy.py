@@ -88,17 +88,17 @@ boundary_offset = int((N - n) / 2)
 MAX_FRAMES = 16
 
 block = ti.root.pointer(ti.ij, (n_blocks, n_blocks))
-block.dense(ti.ij, (N // n_blocks, N // (bits * n_blocks))).bit_array(
-    ti.j, bits, num_bits=bits).place(state_a)
-block.dense(ti.ij, (N // n_blocks, N // (bits * n_blocks))).bit_array(
-    ti.j, bits, num_bits=bits).place(state_b)
+block.dense(ti.ij, (N // n_blocks, N // (bits * n_blocks))).quant_array(
+    ti.j, bits, max_num_bits=bits).place(state_a)
+block.dense(ti.ij, (N // n_blocks, N // (bits * n_blocks))).quant_array(
+    ti.j, bits, max_num_bits=bits).place(state_b)
 
-img = ti.field(dtype=ti.float32, shape=(img_size, img_size))
+img = ti.field(dtype=ti.f32, shape=(img_size, img_size))
 
 
 @ti.kernel
 def evolve(x: ti.template(), y: ti.template()):
-    ti.lang.impl.get_runtime().prog.current_ast_builder().bit_vectorize(32)
+    ti.loop_config(bit_vectorize=True)
     for i, j in x:
         num_active_neighbors = ti.u32(0)
         num_active_neighbors += ti.cast(x[i - 1, j - 1], ti.u32)

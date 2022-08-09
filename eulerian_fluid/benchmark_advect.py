@@ -15,8 +15,6 @@ def parse_args():
     parser.add_argument(
         '-D', '--debug', action='store_true', help='Use debug mode')
     parser.add_argument(
-        '-a', '--async-mode', action='store_true', help='Use async mode')
-    parser.add_argument(
         '-q',
         '--quant-all',
         action='store_true',
@@ -40,7 +38,6 @@ def parse_args():
     )
     parser.add_argument(
         '--no-gui', action='store_true', help='Do not show GUI')
-    parser.add_argument('--dot', action='store_true', help='Export dot file')
     parser.add_argument(
         '--visualize', action='store_true', help='Visualize result')
     parser.add_argument(
@@ -138,14 +135,11 @@ class Benchmark(FluidSolverBase):
 if __name__ == '__main__':
     args = parse_args()
     kwargs = {}
-    if args.dot:
-        kwargs['async_opt_intermediate_file'] = "dots/advect"
     ti.init(
         arch=ti.gpu,
         kernel_profiler=True,
-        async_mode=args.async_mode,
         debug=args.debug,
-        device_memory_fraction=0.8,
+        device_memory_GB=2,
         **kwargs)
     v_quant = args.quant_v
     dye_quant = args.quant_dye
@@ -183,5 +177,4 @@ if __name__ == '__main__':
     print(
         f'Advection benchmark time: {time.time() - second_frame_begin_ts:.3f} s'
     )
-    #ti.misc.util.print_async_stats(include_kernel_profiler=True)
     ti.profiler.print_kernel_profiler_info()
