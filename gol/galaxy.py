@@ -2,6 +2,7 @@ import taichi as ti
 import numpy as np
 import argparse
 import os
+import gzip
 from datetime import datetime
 
 
@@ -48,7 +49,7 @@ def from_rle(file):
 
 
 def from_npy(file):
-    with open(file, 'rb') as f:
+    with gzip.open(file, 'rb') as f:
         data = np.load(f)
         height, width = data.shape
         return data, width, height
@@ -59,6 +60,8 @@ def parse_args():
     parser.add_argument('-s', '--show', action='store_true', help='Run with gui')
     parser.add_argument('-a', '--arch', type=str, default='cpu', help='[cpu/cuda]')
     parser.add_argument('-o', '--out-dir', type=str, help='Output folder')
+    parser.add_argument('--use-rle-file', action='store_true', help='Read pattern from RLE file')
+    parser.add_argument('--steps-per-capture', type=int, default=32768, help='Number of steps per capture')
     args = parser.parse_args()
     print(args)
     return args
@@ -182,13 +185,14 @@ def running(x, y, _gui):
     global frame_id
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
-    print("before 32768 steps ", current_time)
-    for _ in range(16384):
+    steps = args.steps_per_capture
+    print(f"before {steps} steps ", current_time)
+    for _ in range(steps // 2):
         evolve(x, y)
         evolve(y, x)
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
-    print("after 32768 steps ", current_time)
+    print(f"after {steps} steps ", current_time)
     fill_img(n, x)
     _gui.set_image(ti.tools.imresize(img, img_size, img_size).astype(np.float32))
     _gui.show(f'{output_folder}/{frame_id:06d}.png')
@@ -199,8 +203,12 @@ def main():
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     print("pattern start ", current_time)
-    init_buffer, init_width, init_height = from_rle('metapixel-galaxy.rle')
-    init_buffer = np.rot90(init_buffer, 3)
+    if args.use_rle_file:
+        init_buffer, init_width, init_height = from_rle('metapixel-galaxy.rle')
+        init_buffer = np.rot90(init_buffer, 3)
+    else:
+        init_buffer, init_width, init_height = from_npy('metapixel-galaxy.npy.gz')
+
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     print("pattern complete ", current_time)
