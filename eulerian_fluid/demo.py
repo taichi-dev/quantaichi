@@ -21,11 +21,8 @@ def parse_args():
         type=str,
         help='Advection method (\'mc\': MacCormack; \'sl\': Semi-Lagrangian)',
         default='mc')
-    # Cannot use '--async' because it's a keyword...
     parser.add_argument(
         '-D', '--debug', action='store_true', help='Use debug mode')
-    parser.add_argument(
-        '-a', '--async-mode', action='store_true', help='Use async mode')
     parser.add_argument(
         '-v', '--visualize', action='store_true', help='Visualize result')
     parser.add_argument(
@@ -89,7 +86,6 @@ if __name__ == '__main__':
         arch=ti.cuda,
         debug=args.debug,
         kernel_profiler=True,
-        async_mode=args.async_mode,
         device_memory_fraction=0.9)
 
     res = args.res
@@ -142,5 +138,3 @@ if __name__ == '__main__':
             f'Activated Voxels: {solver.count_activated_voxels()}', flush=True)
         if args.demo_id == 2:
             print(f'Density sum: {solver.sum_density(solver.dye[0].field):.3f}')
-    # ti.print_profile_info()
-    # ti.misc.util.print_async_stats(include_kernel_profiler=True)

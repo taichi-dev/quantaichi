@@ -34,7 +34,9 @@ def run(args):
         z = ti.field(dtype=qi8)
         w = ti.field(dtype=qi8)
 
-        ti.root.dense(ti.i, n).bit_struct(num_bits=32).place(x, y, z, w)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(x, y, z, w)
+        ti.root.dense(ti.i, n).place(bitpack)
     else:
         x = ti.field(dtype=ti.i8)
         y = ti.field(dtype=ti.i8)

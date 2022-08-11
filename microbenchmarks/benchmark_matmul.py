@@ -28,7 +28,7 @@ def run(args):
 
     if quant:
         F_bound = 4.0
-        qfxt = ti.types.quant.fixed(frac=16, range=(F_bound + 0.1))
+        qfxt = ti.types.quant.fixed(bits=16, max_value=(F_bound + 0.1))
         F = ti.Matrix.field(3, 3, dtype=qfxt)
     else:
         F = ti.Matrix.field(3, 3, dtype=ti.f32)
@@ -37,11 +37,21 @@ def run(args):
     block = ti.root.dense(ti.i, n)
 
     if quant:
-        block.bit_struct(num_bits=32).place(F.get_scalar_field(0, 0), F.get_scalar_field(0, 1))
-        block.bit_struct(num_bits=32).place(F.get_scalar_field(0, 2), F.get_scalar_field(1, 0))
-        block.bit_struct(num_bits=32).place(F.get_scalar_field(1, 1), F.get_scalar_field(1, 2))
-        block.bit_struct(num_bits=32).place(F.get_scalar_field(2, 0), F.get_scalar_field(2, 1))
-        block.bit_struct(num_bits=32).place(F.get_scalar_field(2, 2))
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(F.get_scalar_field(0, 0), F.get_scalar_field(0, 1))
+        block.place(bitpack)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(F.get_scalar_field(0, 2), F.get_scalar_field(1, 0))
+        block.place(bitpack)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(F.get_scalar_field(1, 1), F.get_scalar_field(1, 2))
+        block.place(bitpack)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(F.get_scalar_field(2, 0), F.get_scalar_field(2, 1))
+        block.place(bitpack)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(F.get_scalar_field(2, 2))
+        block.place(bitpack)
     else:
         block.place(F)
 

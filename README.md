@@ -8,7 +8,7 @@
 
 The QuanTaichi framework is now officially part of [Taichi](https://github.com/taichi-dev/taichi). This repo only contains examples.
 
-**Updates**: Examples are now compatible with Taichi v1.0.3. Please update Taichi if you are using an old version.
+**Updates**: Examples are now compatible with Taichi v1.1.0. Please update Taichi if you are using an old version.
 
 ### Simulate more with less memory, using a quantization compiler.
 High-resolution simulations can deliver great visual quality, but they are often limited by available memory. We present a compiler for physical simulation that can achieve both high performance and significantly reduced memory costs, by enabling flexible and aggressive quantization.   

@@ -166,7 +166,7 @@ class SmokeRenderer:
 
 
 if __name__ == '__main__':
-    ti.init(arch=ti.gpu)
+    ti.init(arch=ti.gpu, device_memory_fraction=0.7)
     args = parse_args()
     res = args.res
     data_type = DataType.GRAY_SCALE

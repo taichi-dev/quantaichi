@@ -85,17 +85,17 @@ class FluidSolverBase:
         dye_type = ti.f32
 
         if self.v_quant:
-            v_type = ti.types.quant.fixed(frac=21, signed=True, range=2**5)
+            v_type = ti.types.quant.fixed(bits=21, signed=True, max_value=2**5)
             if self.benchmark_id == 1:
                 v_type = ti.types.quant.float(exp=5, frac=9)
             elif self.benchmark_id == 2:
-                v_type = ti.types.quant.fixed(frac=10)
+                v_type = ti.types.quant.fixed(bits=10)
 
         if self.dye_quant:
             if self.dye_type == DyeType.SHARED_EXP:
                 dye_type = ti.types.quant.float(exp=5, frac=9, signed=False)
             elif self.dye_type == DyeType.FIXED_POINT:
-                dye_type = ti.types.quant.fixed(frac=10, signed=False)
+                dye_type = ti.types.quant.fixed(bits=10, signed=False)
             elif self.dye_type == DyeType.NON_SHREAD_EXP:
                 dye_type = ti.types.quant.float(exp=5, frac=5, signed=False)
             else:
@@ -134,11 +134,13 @@ class FluidSolverBase:
 
         for v in self.v:
             if self.v_quant and self.demo_id <= 2:
-                cell.bit_struct(64).place(
-                    v.field, offset=self.offset)
+                bitpack = ti.BitpackedFields(max_num_bits=64)
+                bitpack.place(v.field)
+                cell.place(bitpack, offset=self.offset)
             elif self.v_quant and self.demo_id == 3:
-                cell.bit_struct(32).place(
-                    v.field, offset=self.offset, shared_exponent=self.benchmark_id==1)
+                bitpack = ti.BitpackedFields(max_num_bits=32)
+                bitpack.place(v.field, shared_exponent=self.benchmark_id==1)
+                cell.place(bitpack, offset=self.offset)
             else:
                 cell.place(v.field, offset=self.offset)
 
@@ -148,10 +150,9 @@ class FluidSolverBase:
             # eliminated!
             _, cell = make_block_cell()
             if self.dye_quant:
-                cell.bit_struct(32).place(
-                    dye.field,
-                    offset=self.offset,
-                    shared_exponent=self.dye_type == DyeType.SHARED_EXP)
+                bitpack = ti.BitpackedFields(max_num_bits=32)
+                bitpack.place(dye.field, shared_exponent=self.dye_type == DyeType.SHARED_EXP)
+                cell.place(bitpack, offset=self.offset)
             else:
                 cell.place(dye.field, offset=self.offset)
 

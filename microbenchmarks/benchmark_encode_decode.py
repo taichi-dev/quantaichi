@@ -31,8 +31,12 @@ def run(args):
         x = ti.field(dtype=qflt)
         y = ti.field(dtype=qflt)
 
-        ti.root.dense(ti.i, n).bit_struct(num_bits=32).place(x)
-        ti.root.dense(ti.i, n).bit_struct(num_bits=32).place(y)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(x)
+        ti.root.dense(ti.i, n).place(bitpack)
+        bitpack = ti.BitpackedFields(max_num_bits=32)
+        bitpack.place(y)
+        ti.root.dense(ti.i, n).place(bitpack)
     else:
         x = ti.field(dtype=ti.f32)
         y = ti.field(dtype=ti.f32)
