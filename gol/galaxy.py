@@ -62,6 +62,7 @@ def parse_args():
     parser.add_argument('-o', '--out-dir', type=str, help='Output folder')
     parser.add_argument('--use-rle-file', action='store_true', help='Read pattern from RLE file')
     parser.add_argument('--steps-per-capture', type=int, default=32768, help='Number of steps per capture')
+    parser.add_argument('--img-size', type=int, default=512, help='Captured image size')
     args = parser.parse_args()
     print(args)
     return args
@@ -82,7 +83,7 @@ qu1 = ti.types.quant.int(1, False)
 
 state_a = ti.field(dtype=qu1)
 state_b = ti.field(dtype=qu1)
-img_size = 512
+img_size = args.img_size
 N = 65536
 bits = 32
 n_blocks = 16
