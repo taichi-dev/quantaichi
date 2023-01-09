@@ -74,7 +74,7 @@ class AdvectionOp:
 
             min_val, max_val = q_in.sample_minmax(p_src)
             cond = min_val < q_out.field[I] < max_val
-            if ti.static(isinstance(cond, ti.Matrix)):
+            if ti.static(cond.is_tensor()):
                 for k in ti.static(range(cond.n)):
                     if not cond[k]:
                         q_out.field[I][k] = p_sl[k]
