@@ -13,12 +13,16 @@ class AdvectionOp:
         if advect_op == 'sl':
             self.advect_operator = self.advect_sl
         elif advect_op == 'mc':
-            self.advect_operator = self.advect_mc
+            self.advect_operator_tensor = self.advect_mc_tensor
+            self.advect_operator_scalar = self.advect_mc_scalar
         else:
             raise ValueError(f'Unknown error {advect_op}')
 
     def advect(self, *args):
-        self.advect_operator(*args)
+        if isinstance(args[2].field, ti.lang.MatrixField):
+            self.advect_operator_tensor(*args)
+        else:
+            self.advect_operator_scalar(*args)
 
     @ti.func
     def backtrace_rk1(v: ti.template(), p, dt):
@@ -53,7 +57,32 @@ class AdvectionOp:
             q_out.field[I] = q_in.sample(p)
 
     @ti.kernel
-    def advect_mc(self, v: ti.template(), q_in: ti.template(),
+    def advect_mc_scalar(self, v: ti.template(), q_in: ti.template(),
+                         q_out: ti.template(), q_tmp: ti.template(), dt: ti.f32):
+        # MacCormack
+        for I in ti.grouped(q_in.field):
+            p = q_in.I2p(I)
+            p = self.backtrace(v, p, dt)
+            q_out.field[I] = q_in.sample(p)
+
+        for I in ti.grouped(q_in.field):
+            p = q_in.I2p(I)
+            p = self.backtrace(v, p, -dt)
+            q_tmp.field[I] = q_out.sample(p)
+
+        for I in ti.grouped(q_in.field):
+            p = q_in.I2p(I)
+            p_src = self.backtrace(v, p, dt)
+            p_sl = q_in.sample(p_src)
+            q_out.field[I] = q_out.field[I] + 0.5 * (q_in.field[I] - q_tmp.field[I])
+
+            min_val, max_val = q_in.sample_minmax(p_src)
+            cond = min_val < q_out.field[I] < max_val
+            if not cond:
+                q_out.field[I] = p_sl
+    
+    @ti.kernel
+    def advect_mc_tensor(self, v: ti.template(), q_in: ti.template(),
                   q_out: ti.template(), q_tmp: ti.template(), dt: ti.f32):
         # MacCormack
         for I in ti.grouped(q_in.field):
@@ -74,10 +103,6 @@ class AdvectionOp:
 
             min_val, max_val = q_in.sample_minmax(p_src)
             cond = min_val < q_out.field[I] < max_val
-            if ti.static(cond.is_tensor()):
-                for k in ti.static(range(cond.n)):
-                    if not cond[k]:
-                        q_out.field[I][k] = p_sl[k]
-            else:
-                if not cond:
-                    q_out.field[I] = p_sl
+            for k in ti.static(range(cond.n)):
+                if not cond[k]:
+                    q_out.field[I][k] = p_sl[k]
