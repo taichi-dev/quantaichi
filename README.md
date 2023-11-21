@@ -33,10 +33,10 @@ Under proper quantization, we achieve 8× higher memory efficiency on each Game 
 
 ## How to run
 
-### Install the latest Taichi first.
-Install the latest Taichi by:
+### Install Taichi 1.6.0 first.
+Install Taichi 1.6.0 by:
 ```
-python3 -m pip install —U taichi
+python3 -m pip install —U taichi==1.6.0
 ```
 
 ### Game of Life (GoL)
